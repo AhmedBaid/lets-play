@@ -1,0 +1,37 @@
+package letsPlay.config;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.CommandLineRunner;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.security.crypto.password.PasswordEncoder;
+
+import letsPlay.enums.Role;
+import letsPlay.models.UserModel;
+import letsPlay.repository.UserRepository;
+
+@Configuration
+public class MakeAdmin {
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+    @Autowired
+    private UserRepository userRepository;
+
+    @Bean
+    public CommandLineRunner makeAdminSeeder() {
+        return args -> {
+            if (userRepository.existsByName("admin")) {
+                return;
+            }
+
+            UserModel admin = new UserModel();
+            admin.setName("admin");
+            admin.setEmail("admin@gmail.com");
+            admin.setPassword(passwordEncoder.encode("admin123"));
+            admin.setRole(Role.ADMIN);
+
+            userRepository.save(admin);
+            System.out.println(">> Admin user created successfully (username: admin)!");
+        };
+    }
+}

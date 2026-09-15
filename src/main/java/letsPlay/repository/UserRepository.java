@@ -8,4 +8,6 @@ import letsPlay.models.UserModel;
 
 public interface UserRepository extends MongoRepository<UserModel, String> {
     Optional<UserModel> findByName(String name);
+
+    boolean existsByName(String username);
 }
