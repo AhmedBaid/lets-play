@@ -1,5 +1,9 @@
+package letsPlay.repository;
+
 import org.springframework.data.mongodb.repository.MongoRepository;
 
-public interface ProductRepository extends MongoRepository<Product, String> {
+import letsPlay.models.ProductModel;
+
+public interface ProductRepository extends MongoRepository<ProductModel, String> {
 
 }

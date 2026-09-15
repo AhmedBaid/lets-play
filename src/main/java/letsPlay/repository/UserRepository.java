@@ -1,5 +1,11 @@
+package letsPlay.repository;
+
+import java.util.Optional;
+
 import org.springframework.data.mongodb.repository.MongoRepository;
 
-public interface UserRepository extends MongoRepository<User, String> {
+import letsPlay.models.UserModel;
 
+public interface UserRepository extends MongoRepository<UserModel, String> {
+    Optional<UserModel> findByName(String name);
 }
