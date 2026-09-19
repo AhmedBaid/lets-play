@@ -2,7 +2,7 @@
 
 A secure, REST-compliant e-commerce-style backend built with **Spring Boot 4** and **MongoDB**,
 featuring JWT authentication, role-based access control (admin vs. user), BCrypt password
-hashing, global error handling, CORS and rate limiting.
+hashing, global error handling and CORS.
 
 ---
 
@@ -39,7 +39,6 @@ hashing, global error handling, CORS and rate limiting.
 - **Global exception handling** — consistent JSON error bodies, never an unhandled 5XX.
 - **MongoDB injection resilience** — data access goes through Spring Data repositories (parameterized queries), not string-built queries.
 - **Bonus: CORS** — fine-grained policy for `http://localhost:4200`.
-- **Bonus: Rate limiting** — sliding-window in-memory limiter (tighter budget on login/register to slow brute force).
 
 ## Tech Stack
 
@@ -64,13 +63,11 @@ hashing, global error handling, CORS and rate limiting.
 src/main/java/letsPlay/
 ├── config/
 │   ├── CustomUserDetailsService.java   # loads users from the DB for Spring Security
-│   ├── ErrorResponseWriter.java        # unified JSON error body for filter-level errors
-│   ├── JwtFilter.java                  # validates Bearer tokens on every request
+│   ├── JwtFilter.java                  # validates Bearer tokens, throws GlobalException on bad tokens
 │   ├── JwtUtil.java                    # token generation / parsing
 │   ├── MakeAdmin.java                  # seeds an admin account (admin / admin123)
-│   ├── RateLimitFilter.java            # sliding-window rate limiter
-│   ├── RestAccessDeniedHandler.java    # JSON 403 for missing role
-│   ├── RestAuthenticationEntryPoint.java # JSON 401 for missing/invalid token
+│   ├── RestAccessDeniedHandler.java    # throws 403 on missing role
+│   ├── RestAuthenticationEntryPoint.java # throws 401 on missing/invalid token
 │   └── SecurityConfig.java             # filter chain, authorization rules, CORS, BCrypt
 ├── controller/
 │   ├── AdminUserController.java        # /api/admin/users (ADMIN only)
@@ -78,7 +75,7 @@ src/main/java/letsPlay/
 │   └── ProductController.java          # /api/products CRUD
 ├── dto/                                # request/response records
 ├── enums/Role.java                     # ADMIN, USER
-├── exception/                          # GlobalException + GlobalExceptionHandler
+├── exception/                          # GlobalException, GlobalExceptionHandler, ApiErrorController
 ├── models/                             # UserModel, ProductModel (Mongo documents)
 ├── repository/                         # Spring Data MongoRepository interfaces
 └── service/                            # AuthService, ProductService, UserService
@@ -93,9 +90,7 @@ Settings come from `.env` (already gitignored) and `application.properties`:
 | `MONGODB_URI` | MongoDB connection string |
 | `APPLICATION_SECURITY_JWT_SECRET_KEY` | HMAC-SHA256 key used to sign JWTs (≥ 32 bytes) |
 | `APPLICATION_SECURITY_JWT_EXPIRATION` | Token lifetime in ms (default 86400000 = 24 h) |
-| `application.security.rate-limit.enabled` | Master switch for rate limiting |
-| `application.security.rate-limit.requests-per-minute` | Budget for general `/api/**` calls |
-| `application.security.rate-limit.auth-requests-per-minute` | Budget for `/api/auth/**` calls |
+| `spring.security.filter.dispatcher-types` | Dispatcher types the security chain runs on; excludes ERROR so errors thrown in the chain are forwarded to `/error` once |
 
 > **HTTPS:** in production the API must be served over HTTPS (TLS terminates at a reverse
 > proxy / load balancer, or via `server.port` + `server.ssl.*` properties). JWTs and
@@ -226,7 +221,6 @@ Notes:
 | Authorization | Rule table in `SecurityConfig` + ownership checks inside `ProductService` |
 | Injection | All queries via Spring Data repositories (parameterized), never string-built MongoDB queries |
 | Transport | JWT secrets from `.env`; HTTPS required in production |
-| Brute force | Rate limiting with a stricter budget on `/api/auth/**` |
 
 ### Authorization matrix
 
@@ -262,22 +256,23 @@ Notes:
 | 404 | Unknown product/user/route |
 | 405 | Wrong HTTP method on a resource |
 | 409 | Duplicate username/email, conflicting state |
-| 429 | Rate limit exceeded |
 
-Errors raised in the security filter chain (before Spring MVC) are serialized with the
-same body by `RestAuthenticationEntryPoint` (401), `RestAccessDeniedHandler` (403),
-`JwtFilter` (401) and `RateLimitFilter` (429). A last-resort handler guarantees no
-unhandled 5XX responses. Invalid/unknown routes return JSON 404 instead of whitelabel —
-note that *unauthenticated* requests to unknown **protected** paths are rejected with
-**401** by the security layer before routing ever happens (with a valid token they get 404).
+Exceptions thrown **inside Spring MVC** (controllers, services) are converted by
+`GlobalExceptionHandler` (`@RestControllerAdvice`). Exceptions thrown **earlier,
+in the security filter chain** — the JWT filter, the authentication entry point and
+the access-denied handler all `throw new GlobalException(...)` — are re-dispatched by
+the servlet container to `/error`, where `ApiErrorController` rebuilds the original
+`GlobalException` (status + message) and renders it with the exact same body shape.
+The security chain is configured with `spring.security.filter.dispatcher-types=async, request`
+so it does not re-run on the error re-dispatch (which would otherwise loop). A
+last-resort handler/controller guarantees no unhandled 5XX responses. Invalid/unknown
+routes return JSON 404 instead of whitelabel — note that *unauthenticated* requests to
+unknown **protected** paths are rejected with **401** by the security layer before
+routing ever happens (with a valid token they get 404).
 
 ## Bonus Features
 
 - **CORS** — `SecurityConfig` whitelists `http://localhost:4200` with explicit methods/headers and credentials.
-- **Rate limiting** — `RateLimitFilter` implements an in-memory sliding window (60 s) per IP:
-  - general `/api/**`: 100 req/min
-  - `/api/auth/**`: 10 req/min (brute-force protection)
-  - Tunable via `application.properties`; respected `X-Forwarded-For` for proxied deployments.
 
 ## Testing
 

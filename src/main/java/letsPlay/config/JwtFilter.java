@@ -15,23 +15,18 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import letsPlay.exception.GlobalException;
 
-/**
- * Validates the Bearer JWT on every request and populates the SecurityContext.
- * Any malformed, expired or unknown token is rejected with a JSON 401.
- */
+
 @Component
 public class JwtFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
     private final UserDetailsService userDetailsService;
-    private final ErrorResponseWriter errorResponseWriter;
 
-    public JwtFilter(JwtUtil jwtUtil, UserDetailsService userDetailsService,
-            ErrorResponseWriter errorResponseWriter) {
+    public JwtFilter(JwtUtil jwtUtil, UserDetailsService userDetailsService) {
         this.jwtUtil = jwtUtil;
         this.userDetailsService = userDetailsService;
-        this.errorResponseWriter = errorResponseWriter;
     }
 
     @Override
@@ -61,13 +56,13 @@ public class JwtFilter extends OncePerRequestFilter {
                     authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                     SecurityContextHolder.getContext().setAuthentication(authToken);
                 } else {
-                    errorResponseWriter.write(response, HttpStatus.UNAUTHORIZED, "Invalid or expired token");
-                    return;
+                    throw new GlobalException("Invalid or expired token", HttpStatus.UNAUTHORIZED);
                 }
             }
+        } catch (GlobalException e) {
+            throw e;
         } catch (Exception e) {
-            errorResponseWriter.write(response, HttpStatus.UNAUTHORIZED, "Invalid or expired token");
-            return;
+            throw new GlobalException("Invalid or expired token", HttpStatus.UNAUTHORIZED);
         }
 
         filterChain.doFilter(request, response);

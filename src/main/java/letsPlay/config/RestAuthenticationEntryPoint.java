@@ -10,23 +10,19 @@ import org.springframework.stereotype.Component;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import letsPlay.exception.GlobalException;
 
 /**
- * Returns a JSON 401 when an unauthenticated request hits a protected endpoint.
+ * Returns a 401 when an unauthenticated request hits a protected endpoint.
+ * The thrown exception is formatted as JSON by the /error controller.
  */
 @Component
 public class RestAuthenticationEntryPoint implements AuthenticationEntryPoint {
 
-    private final ErrorResponseWriter errorResponseWriter;
-
-    public RestAuthenticationEntryPoint(ErrorResponseWriter errorResponseWriter) {
-        this.errorResponseWriter = errorResponseWriter;
-    }
-
     @Override
     public void commence(HttpServletRequest request, HttpServletResponse response,
             AuthenticationException authException) throws IOException, ServletException {
-        errorResponseWriter.write(response, HttpStatus.UNAUTHORIZED,
-                "Authentication required: please provide a valid token");
+        throw new GlobalException("Authentication required: please provide a valid token",
+                HttpStatus.UNAUTHORIZED);
     }
 }

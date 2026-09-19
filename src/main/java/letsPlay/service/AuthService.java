@@ -51,7 +51,7 @@ public class AuthService {
         user.setName(name);
         user.setEmail(email);
         user.setPassword(passwordEncoder.encode(request.password()));
-        user.setRole(Role.USER); // new registrations are always normal users
+        user.setRole(Role.USER);
 
         userRepository.save(user);
 
@@ -75,9 +75,6 @@ public class AuthService {
         return new AuthResponse(token, expiresAt, UserResponse.from(user));
     }
 
-    /**
-     * Resolves a user by either username or email (whichever the client supplies).
-     */
     private java.util.Optional<UserModel> findByIdentifier(String identifier) {
         String value = identifier.trim();
         if (value.contains("@")) {
