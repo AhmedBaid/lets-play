@@ -2,7 +2,7 @@ package letsPlay.controller;
 
 import java.util.List;
 
-import org.springframework.http.HttpStatus;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -25,55 +25,30 @@ import letsPlay.service.ProductService;
 @RestController
 @RequestMapping("/api/products")
 public class ProductController {
+    @Autowired
+    private ProductService productService;
 
-    private final ProductService productService;
-
-    public ProductController(ProductService productService) {
-        this.productService = productService;
-    }
-
-    /**
-     * GET /api/products
-     * Public. Lists every product.
-     */
     @GetMapping
     public ResponseEntity<List<ProductModel>> getAllProducts() {
         return ResponseEntity.ok(productService.getAllProducts());
     }
 
-    /**
-     * GET /api/products/{id}
-     * Public. Returns a single product.
-     */
     @GetMapping("/{id}")
     public ResponseEntity<ProductModel> getProduct(@PathVariable String id) {
         return ResponseEntity.ok(productService.getProduct(id));
     }
 
-    /**
-     * POST /api/products
-     * Authenticated only. Creates a product owned by the caller.
-     */
     @PostMapping
     public ResponseEntity<ProductModel> createProduct(@Valid @RequestBody ProductRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(productService.createProduct(request, currentUsername()));
+        return ResponseEntity.ok(productService.createProduct(request, currentUsername()));
     }
 
-    /**
-     * PUT /api/products/{id}
-     * Owner or ADMIN only. Fully replaces a product.
-     */
     @PutMapping("/{id}")
     public ResponseEntity<ProductModel> updateProduct(@PathVariable String id,
             @Valid @RequestBody ProductRequest request) {
         return ResponseEntity.ok(productService.updateProduct(id, request, currentUsername(), currentRole()));
     }
 
-    /**
-     * DELETE /api/products/{id}
-     * Owner or ADMIN only.
-     */
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteProduct(@PathVariable String id) {
         productService.deleteProduct(id, currentUsername(), currentRole());

@@ -27,10 +27,11 @@ public class MakeAdmin {
                 UserModel admin = new UserModel();
                 admin.setName("admin");
                 admin.setEmail("admin@gmail.com");
-                admin.setPassword(passwordEncoder.encode("admin123"));
+                String admin_password = System.getenv("ADMIN_PASSWORD");
+                admin.setPassword(passwordEncoder.encode(admin_password));
                 admin.setRole(Role.ADMIN);
                 userRepository.save(admin);
-                System.out.println(">> Admin user created successfully (username: admin)!");
+                System.out.println(">> Admin user created successfully");
             } catch (Exception e) {
                 System.out.println(e.getMessage());
             }

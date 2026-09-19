@@ -2,6 +2,7 @@ package letsPlay.service;
 
 import java.util.List;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
@@ -15,14 +16,10 @@ import letsPlay.repository.UserRepository;
 
 @Service
 public class ProductService {
-
-    private final ProductRepository productRepository;
-    private final UserRepository userRepository;
-
-    public ProductService(ProductRepository productRepository, UserRepository userRepository) {
-        this.productRepository = productRepository;
-        this.userRepository = userRepository;
-    }
+    @Autowired
+    private ProductRepository productRepository;
+    @Autowired
+    private UserRepository userRepository;
 
     public List<ProductModel> getAllProducts() {
         return productRepository.findAll();
@@ -35,12 +32,12 @@ public class ProductService {
 
     public ProductModel createProduct(ProductRequest request, String ownerName) {
         UserModel owner = userRepository.findByName(ownerName)
-                .orElseThrow(() -> new GlobalException("Authenticated user not found", HttpStatus.UNAUTHORIZED));
+                .orElseThrow(() -> new GlobalException("user not found", HttpStatus.UNAUTHORIZED));
 
         ProductModel product = new ProductModel();
-        product.setName(request.name().trim());
-        product.setPrice(request.price());
-        product.setDescription(request.description());
+        product.setName(request.getName().trim());
+        product.setPrice(request.getPrice());
+        product.setDescription(request.getDescription());
         product.setUserId(owner.getId());
 
         return productRepository.save(product);
@@ -50,9 +47,9 @@ public class ProductService {
         ProductModel product = getProduct(id);
         ensureCanModify(product, ownerName, role);
 
-        product.setName(request.name().trim());
-        product.setPrice(request.price());
-        product.setDescription(request.description());
+        product.setName(request.getName().trim());
+        product.setPrice(request.getPrice());
+        product.setDescription(request.getDescription());
 
         return productRepository.save(product);
     }
@@ -63,9 +60,6 @@ public class ProductService {
         productRepository.delete(product);
     }
 
-    /**
-     * Only the product owner or an admin may modify/delete a product.
-     */
     private void ensureCanModify(ProductModel product, String ownerName, Role role) {
         if (role == Role.ADMIN) {
             return;
