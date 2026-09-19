@@ -12,10 +12,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import letsPlay.exception.GlobalException;
 
-/**
- * Returns a 403 when an authenticated user lacks the required role.
- * The thrown exception is formatted as JSON by the /error controller.
- */
 @Component
 public class RestAccessDeniedHandler implements AccessDeniedHandler {
 
