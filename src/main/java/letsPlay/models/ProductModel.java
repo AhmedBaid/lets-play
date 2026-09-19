@@ -18,8 +18,8 @@ public class ProductModel {
     private String name;
 
     @Field("price")
-    private String price;
-    
+    private Double price;
+
     @Field("description")
     private String description;
 

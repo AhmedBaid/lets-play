@@ -9,5 +9,9 @@ import letsPlay.models.UserModel;
 public interface UserRepository extends MongoRepository<UserModel, String> {
     Optional<UserModel> findByName(String name);
 
-    boolean existsByName(String username);
+    Optional<UserModel> findByEmail(String email);
+
+    boolean existsByName(String name);
+
+    boolean existsByEmail(String email);
 }
