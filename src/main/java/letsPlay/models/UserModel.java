@@ -5,9 +5,6 @@ import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonProperty;
-
 import letsPlay.enums.Role;
 import lombok.Getter;
 import lombok.Setter;
@@ -28,8 +25,6 @@ public class UserModel {
     private String email;
 
     @Field("password")
-    @JsonIgnore
-    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private String password;
 
     @Field("role")

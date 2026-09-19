@@ -1,8 +1,11 @@
 package letsPlay.dto;
 
 import jakarta.validation.constraints.NotBlank;
-
-public record LoginRequest(
-        @NotBlank(message = "Username or email is required") String name,
-        @NotBlank(message = "Password is required") String password) {
+import lombok.Getter;
+@Getter 
+public class LoginRequest {
+        @NotBlank(message = "Username or email is required")
+        private String name;
+        @NotBlank(message = "Password is required")
+        private String password;
 }

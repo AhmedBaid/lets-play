@@ -4,8 +4,6 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -26,15 +24,10 @@ import io.jsonwebtoken.JwtException;
 import jakarta.validation.ConstraintViolationException;
 import letsPlay.dto.ErrorResponseDTO;
 
-/**
- * Global error handling: every exception that escapes a controller is
- * translated into a consistent JSON error body with a meaningful status code,
- * so the API never leaks stack traces or returns unhandled 5XX errors.
- */
+
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     private ResponseEntity<ErrorResponseDTO> buildResponse(HttpStatus status, String message, WebRequest request) {
         ErrorResponseDTO error = new ErrorResponseDTO(
@@ -47,7 +40,6 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(error, status);
     }
 
-    // --- 4xx: application-level errors -------------------------------------
 
     @ExceptionHandler(GlobalException.class)
     public ResponseEntity<ErrorResponseDTO> handleGlobalException(GlobalException ex, WebRequest request) {
@@ -127,7 +119,6 @@ public class GlobalExceptionHandler {
                 request);
     }
 
-    // --- auth errors ---------------------------------------------------------
 
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ErrorResponseDTO> handleForbidden(AccessDeniedException ex, WebRequest request) {
@@ -146,17 +137,14 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.UNAUTHORIZED, "Invalid username or password", request);
     }
 
-    // --- HTTP semantics -------------------------------------------------------
 
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
     public ResponseEntity<ErrorResponseDTO> handleMethodNotAllowed(Exception ex, WebRequest request) {
         return buildResponse(HttpStatus.METHOD_NOT_ALLOWED, "HTTP method not allowed for this resource", request);
     }
 
-    /** Last resort: never leak internals, always return a friendly 500. */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponseDTO> handleUnexpectedException(Exception ex, WebRequest request) {
-        log.error("Unhandled exception while processing request {}", getPath(request), ex);
         return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred", request);
     }
 
