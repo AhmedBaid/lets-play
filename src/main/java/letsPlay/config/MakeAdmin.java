@@ -20,21 +20,16 @@ public class MakeAdmin {
     @Bean
     public CommandLineRunner makeAdminSeeder() {
         return args -> {
-            try {
-                if (userRepository.existsByName("admin")) {
-                    return;
-                }
-                UserModel admin = new UserModel();
-                admin.setName("admin");
-                admin.setEmail("admin@gmail.com");
-                String admin_password = System.getenv("ADMIN_PASSWORD");
-                admin.setPassword(passwordEncoder.encode(admin_password));
-                admin.setRole(Role.ADMIN);
-                userRepository.save(admin);
-                System.out.println(">> Admin user created successfully");
-            } catch (Exception e) {
-                System.out.println(e.getMessage());
+            if (userRepository.existsByName("admin")) {
+                return;
             }
+            UserModel admin = new UserModel();
+            admin.setName("admin");
+            admin.setEmail("admin@gmail.com");
+            admin.setPassword(passwordEncoder.encode("admin123"));
+            admin.setRole(Role.ADMIN);
+            userRepository.save(admin);
+            System.out.println(">> Admin user created successfully");
         };
     }
 }

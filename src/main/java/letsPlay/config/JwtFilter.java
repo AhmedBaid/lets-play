@@ -58,16 +58,13 @@ public class JwtFilter extends OncePerRequestFilter {
                     throw new GlobalException("Invalid or expired token", HttpStatus.UNAUTHORIZED);
                 }
             }
-        } catch (GlobalException e) {
+        } catch (Exception e) {
             handlerExceptionResolver.resolveException(
                     request,
                     response,
                     null,
                     e);
-
             return;
-        } catch (Exception e) {
-            throw new GlobalException("Invalid or expired token", HttpStatus.UNAUTHORIZED);
         }
 
         filterChain.doFilter(request, response);
