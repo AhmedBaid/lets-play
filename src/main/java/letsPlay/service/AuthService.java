@@ -1,6 +1,5 @@
 package letsPlay.service;
 
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -10,6 +9,7 @@ import letsPlay.config.JwtUtil;
 import letsPlay.dto.LoginRequest;
 import letsPlay.dto.LoginResponseDTO;
 import letsPlay.dto.RegisterRequest;
+import letsPlay.dto.ResponseDTO;
 import letsPlay.enums.Role;
 import letsPlay.exception.GlobalException;
 import letsPlay.models.UserModel;
@@ -24,7 +24,7 @@ public class AuthService {
     @Autowired
     private JwtUtil jwtUtil;
 
-    public void register(RegisterRequest request) {
+    public ResponseDTO register(RegisterRequest request) {
         String name = request.getName().trim();
         String email = request.getEmail().trim().toLowerCase();
 
@@ -42,6 +42,7 @@ public class AuthService {
         user.setRole(Role.USER);
 
         userRepository.save(user);
+        return new ResponseDTO("user registred successfully");
     }
 
     public LoginResponseDTO login(LoginRequest request) {

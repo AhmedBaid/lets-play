@@ -28,5 +28,5 @@ public class UserModel {
     private String password;
 
     @Field("role")
-    private Role role;
+    private Role role = Role.USER;
 }

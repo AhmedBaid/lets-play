@@ -1,8 +1,10 @@
 package letsPlay.dto;
 
 import lombok.AllArgsConstructor;
+import lombok.Getter;
 
-@AllArgsConstructor 
+@AllArgsConstructor
+@Getter
 public class LoginResponseDTO {
     private String token;
 }
