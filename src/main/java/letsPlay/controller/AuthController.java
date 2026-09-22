@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import jakarta.annotation.security.PermitAll;
 import jakarta.validation.Valid;
 import letsPlay.dto.ResponseDTO;
 import letsPlay.dto.LoginRequest;
@@ -21,11 +22,13 @@ public class AuthController {
     private AuthService authService;
 
     @PostMapping("/register")
+    @PermitAll
     public ResponseEntity<ResponseDTO> register(@Valid @RequestBody RegisterRequest request) {
         return ResponseEntity.ok(authService.register(request));
     }
 
     @PostMapping("/login")
+    @PermitAll
     public ResponseEntity<LoginResponseDTO> login(@Valid @RequestBody LoginRequest request) {
         return ResponseEntity.ok(authService.login(request));
     }
