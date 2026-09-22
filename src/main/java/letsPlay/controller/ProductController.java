@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.validation.Valid;
 import letsPlay.dto.ProductRequest;
+import letsPlay.dto.ResponseDTO;
 import letsPlay.enums.Role;
 import letsPlay.models.ProductModel;
 import letsPlay.service.ProductService;
@@ -50,9 +51,9 @@ public class ProductController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteProduct(@PathVariable String id) {
+    public ResponseEntity<ResponseDTO> deleteProduct(@PathVariable String id) {
         productService.deleteProduct(id, currentUsername(), currentRole());
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok(new ResponseDTO("product deleted successfully"));
     }
 
     private String currentUsername() {

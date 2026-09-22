@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.validation.Valid;
+import letsPlay.dto.ResponseDTO;
 import letsPlay.dto.UpdateUserRequest;
 import letsPlay.models.UserModel;
 import letsPlay.service.UserService;
@@ -44,9 +45,9 @@ public class AdminUserController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteUser(@PathVariable String id) {
+    public ResponseEntity<ResponseDTO> deleteUser(@PathVariable String id) {
         userService.deleteUser(id, currentUsername());
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok(new ResponseDTO("user deleted successfully"));
     }
 
     private String currentUsername() {
