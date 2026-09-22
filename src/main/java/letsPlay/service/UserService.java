@@ -7,6 +7,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import letsPlay.dto.UpdateUserRequest;
+import letsPlay.dto.UserResponseDTO;
 import letsPlay.enums.Role;
 import letsPlay.exception.GlobalException;
 import letsPlay.models.UserModel;
@@ -20,8 +21,10 @@ public class UserService {
     @Autowired
     private ProductRepository productRepository;
 
-    public List<UserModel> getAllUsers() {
-        return userRepository.findAll();
+    public List<UserResponseDTO> getAllUsers() {
+        return userRepository.findAll().stream()
+                .map(UserResponseDTO::from)
+                .toList();
     }
 
     public UserModel getUser(String id) {

@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 import jakarta.validation.Valid;
 import letsPlay.dto.ResponseDTO;
 import letsPlay.dto.UpdateUserRequest;
+import letsPlay.dto.UserResponseDTO;
 import letsPlay.models.UserModel;
 import letsPlay.service.UserService;
 
@@ -29,7 +30,7 @@ public class AdminUserController {
     private UserService userService;
 
     @GetMapping
-    public ResponseEntity<List<UserModel>> getAllUsers() {
+    public ResponseEntity<List<UserResponseDTO>> getAllUsers() {
         return ResponseEntity.ok(userService.getAllUsers());
     }
 
