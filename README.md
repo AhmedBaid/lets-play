@@ -8,21 +8,53 @@ hashing, global error handling and CORS.
 
 ## Table of Contents
 
-1. [Features](#features)
-2. [Tech Stack](#tech-stack)
-3. [Prerequisites](#prerequisites)
-4. [Project Structure](#project-structure)
-5. [Configuration](#configuration)
-6. [Running the application](#running-the-application)
-7. [API Reference](#api-reference)
-   - [Authentication](#authentication)
-   - [Public endpoints](#public-endpoints)
-   - [Authenticated endpoints](#authenticated-endpoints)
-   - [Admin endpoints](#admin-endpoints)
-8. [Security Design](#security-design)
-9. [Error Handling](#error-handling)
-10. [Bonus Features](#bonus-features)
-11. [Testing](#testing)
+- [Let's Play — RESTful CRUD API](#lets-play--restful-crud-api)
+  - [Table of Contents](#table-of-contents)
+  - [Features](#features)
+  - [Tech Stack](#tech-stack)
+  - [Prerequisites](#prerequisites)
+  - [Project Structure](#project-structure)
+  - [Configuration](#configuration)
+  - [Running the application](#running-the-application)
+  - [API Reference](#api-reference)
+    - [Authentication](#authentication)
+      - [`POST /api/auth/register` — public](#post-apiauthregister--public)
+      - [`POST /api/auth/login` — public](#post-apiauthlogin--public)
+    - [Public endpoints](#public-endpoints)
+    - [Authenticated endpoints (any logged-in user)](#authenticated-endpoints-any-logged-in-user)
+      - [`POST /api/products` — creates a product owned by the caller](#post-apiproducts--creates-a-product-owned-by-the-caller)
+      - [`PUT /api/products/{id}` — **owner or ADMIN only**](#put-apiproductsid--owner-or-admin-only)
+      - [`DELETE /api/products/{id}` — **owner or ADMIN only**](#delete-apiproductsid--owner-or-admin-only)
+    - [Admin endpoints (`ADMIN` role only)](#admin-endpoints-admin-role-only)
+  - [Security Design](#security-design)
+    - [Authorization matrix](#authorization-matrix)
+  - [Error Handling](#error-handling)
+  - [Bonus Features](#bonus-features)
+  - [Testing](#testing)
+- [HTTPS Configuration](#https-configuration)
+  - [1. Generate the SSL Certificate](#1-generate-the-ssl-certificate)
+    - [What does this command do?](#what-does-this-command-do)
+    - [Meaning of each option](#meaning-of-each-option)
+  - [2. Understand the Certificate](#2-understand-the-certificate)
+  - [3. Put the Keystore in the Project](#3-put-the-keystore-in-the-project)
+  - [4. Configure HTTPS in `application.properties`](#4-configure-https-in-applicationproperties)
+    - [What does each property do?](#what-does-each-property-do)
+      - [`server.port`](#serverport)
+      - [`server.ssl.enabled`](#serversslenabled)
+      - [`server.ssl.key-store`](#serversslkey-store)
+      - [`server.ssl.key-store-password`](#serversslkey-store-password)
+      - [`server.ssl.key-store-type`](#serversslkey-store-type)
+      - [`server.ssl.key-alias`](#serversslkey-alias)
+  - [5. Start the Application](#5-start-the-application)
+  - [6. Test HTTPS](#6-test-https)
+    - [Important](#important)
+  - [7. Test the Register Endpoint](#7-test-the-register-endpoint)
+  - [8. HTTP vs HTTPS](#8-http-vs-https)
+    - [HTTP](#http)
+    - [HTTPS](#https)
+  - [9. What Happens Internally?](#9-what-happens-internally)
+  - [10. Local Certificate vs Production Certificate](#10-local-certificate-vs-production-certificate)
+  - [Summary](#summary)
 
 ---
 
@@ -294,4 +326,516 @@ curl -s localhost:8080/api/products
 curl -s -X POST localhost:8080/api/products -H 'Content-Type: application/json' \
   -H 'Authorization: Bearer <token>' \
   -d '{"name":"Wireless Mouse","price":29.99,"description":"Ergonomic mouse"}'
+```
+
+
+
+
+
+# HTTPS Configuration
+
+This project can run over HTTPS using Spring Boot's embedded Tomcat and a PKCS12 keystore.
+
+> **Note:** The configuration below is intended for local development. The certificate is self-signed, so browsers and clients will not automatically trust it.
+
+---
+
+## 1. Generate the SSL Certificate
+
+Generate a PKCS12 keystore using Java's `keytool`:
+
+```bash
+keytool -genkeypair \
+  -alias lets-play \
+  -keyalg RSA \
+  -keysize 2048 \
+  -storetype PKCS12 \
+  -keystore lets-play.p12 \
+  -validity 3650
+```
+
+### What does this command do?
+
+It creates a file:
+
+```text
+lets-play.p12
+```
+
+This file is a **keystore**. It contains the cryptographic material that Spring Boot/Tomcat needs to establish HTTPS connections.
+
+### Meaning of each option
+
+| Option                    | Meaning                                                    |
+| ------------------------- | ---------------------------------------------------------- |
+| `-genkeypair`             | Generates a public/private key pair and a certificate      |
+| `-alias lets-play`        | Name used to identify this certificate inside the keystore |
+| `-keyalg RSA`             | Uses RSA for the key pair                                  |
+| `-keysize 2048`           | Generates a 2048-bit RSA key                               |
+| `-storetype PKCS12`       | Uses the PKCS12 keystore format                            |
+| `-keystore lets-play.p12` | Name of the generated keystore file                        |
+| `-validity 3650`          | Certificate validity period in days                        |
+
+`3650` days is approximately 10 years.
+
+---
+
+## 2. Understand the Certificate
+
+The generated certificate contains a **public key** and information about the certificate owner.
+
+The keystore also contains the corresponding **private key**.
+
+Conceptually:
+
+```text
+                 lets-play.p12
+                      |
+          +-----------+-----------+
+          |                       |
+     Private Key             Certificate
+          |                       |
+       Secret                  Public
+          |                       |
+          +-----------+-----------+
+                      |
+                 HTTPS / TLS
+```
+
+The **private key must remain secret**.
+
+Do not commit the `.p12` file or its password to Git.
+
+Add the keystore to `.gitignore`:
+
+```gitignore
+*.p12
+*.jks
+```
+
+---
+
+## 3. Put the Keystore in the Project
+
+For local development, put the file inside:
+
+```text
+src/main/resources/lets-play.p12
+```
+
+The project structure becomes:
+
+```text
+lets-play/
+├── src/
+│   └── main/
+│       └── resources/
+│           ├── application.properties
+│           └── lets-play.p12
+├── pom.xml
+└── ...
+```
+
+Because the file is inside `resources`, Spring Boot can access it through the classpath.
+
+---
+
+## 4. Configure HTTPS in `application.properties`
+
+Add:
+
+```properties
+server.port=8443
+
+server.ssl.enabled=true
+server.ssl.key-store=classpath:lets-play.p12
+server.ssl.key-store-password=YOUR_PASSWORD
+server.ssl.key-store-type=PKCS12
+server.ssl.key-alias=lets-play
+```
+
+### What does each property do?
+
+#### `server.port`
+
+```properties
+server.port=8443
+```
+
+Changes the port where the HTTPS server listens.
+
+Instead of:
+
+```text
+http://localhost:8080
+```
+
+the application becomes:
+
+```text
+https://localhost:8443
+```
+
+`8443` is commonly used for HTTPS during development.
+
+---
+
+#### `server.ssl.enabled`
+
+```properties
+server.ssl.enabled=true
+```
+
+Tells Spring Boot to enable SSL/TLS for the embedded web server.
+
+Without this:
+
+```text
+HTTP
+```
+
+With this:
+
+```text
+HTTPS
+```
+
+---
+
+#### `server.ssl.key-store`
+
+```properties
+server.ssl.key-store=classpath:lets-play.p12
+```
+
+Tells Spring Boot where the keystore is located.
+
+`classpath:` means:
+
+```text
+src/main/resources/
+```
+
+So:
+
+```text
+classpath:lets-play.p12
+```
+
+refers to:
+
+```text
+src/main/resources/lets-play.p12
+```
+
+---
+
+#### `server.ssl.key-store-password`
+
+```properties
+server.ssl.key-store-password=YOUR_PASSWORD
+```
+
+This is the password used to open the PKCS12 keystore.
+
+Spring Boot needs it to access the private key and certificate.
+
+Do not hard-code the real password in a public repository.
+
+A better approach is:
+
+```properties
+server.ssl.key-store-password=${SSL_KEYSTORE_PASSWORD}
+```
+
+Then define:
+
+```bash
+export SSL_KEYSTORE_PASSWORD="your-password"
+```
+
+---
+
+#### `server.ssl.key-store-type`
+
+```properties
+server.ssl.key-store-type=PKCS12
+```
+
+Tells Spring Boot the format of the keystore.
+
+This must match:
+
+```bash
+-storetype PKCS12
+```
+
+from the `keytool` command.
+
+---
+
+#### `server.ssl.key-alias`
+
+```properties
+server.ssl.key-alias=lets-play
+```
+
+A keystore can contain multiple keys/certificates.
+
+The alias tells Spring Boot which one to use.
+
+It matches:
+
+```bash
+-alias lets-play
+```
+
+from the `keytool` command.
+
+---
+
+## 5. Start the Application
+
+Run:
+
+```bash
+./mvnw spring-boot:run
+```
+
+The application should now listen on:
+
+```text
+https://localhost:8443
+```
+
+You should see something similar to:
+
+```text
+Tomcat started on port 8443 (https) 
+```
+
+---
+
+## 6. Test HTTPS
+
+Because the certificate is self-signed, `curl` will not trust it by default.
+
+For local testing:
+
+```bash
+curl -k https://localhost:8443
+```
+
+The `-k` option means:
+
+```text
+--insecure
+```
+
+It tells `curl` to continue even though the certificate is not signed by a trusted Certificate Authority (CA).
+
+### Important
+
+`-k` should generally be used only for local testing.
+
+Do not use it as a solution for production HTTPS.
+
+---
+
+## 7. Test the Register Endpoint
+
+For example:
+
+```bash
+curl -k -X POST https://localhost:8443/api/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Ahmed",
+    "email": "ahmed@example.com",
+    "password": "password123"
+  }'
+```
+
+The request is now sent through an encrypted TLS connection:
+
+```text
+Client
+   |
+   | HTTPS / TLS
+   | encrypted
+   ↓
+Spring Boot
+   |
+   ↓
+/api/auth/register
+```
+
+---
+
+## 8. HTTP vs HTTPS
+
+### HTTP
+
+```text
+Client
+   |
+   | HTTP
+   ↓
+Spring Boot
+```
+
+The connection is not encrypted.
+
+### HTTPS
+
+```text
+Client
+   |
+   | HTTPS
+   | TLS encryption
+   ↓
+Spring Boot
+```
+
+TLS provides encryption and server authentication based on certificates.
+
+This is especially important when the application sends sensitive information such as:
+
+* Passwords
+* JWT tokens
+* User information
+* Authorization headers
+
+For example:
+
+```http
+Authorization: Bearer <JWT>
+```
+
+should be transmitted over HTTPS in a real deployment.
+
+---
+
+## 9. What Happens Internally?
+
+When a client connects to:
+
+```text
+https://localhost:8443
+```
+
+the connection roughly follows this process:
+
+```text
+Client
+   |
+   | 1. TLS connection
+   ↓
+Tomcat
+   |
+   | 2. Server presents certificate
+   ↓
+Client
+   |
+   | 3. Certificate is verified
+   ↓
+TLS handshake
+   |
+   | 4. Secure session established
+   ↓
+Encrypted HTTP requests
+```
+
+Spring Boot passes the SSL configuration to its embedded Tomcat server.
+
+Tomcat uses the private key and certificate from:
+
+```text
+lets-play.p12
+```
+
+to participate in the TLS handshake.
+
+---
+
+## 10. Local Certificate vs Production Certificate
+
+The certificate generated with `keytool` is **self-signed**.
+
+That means it is useful for:
+
+```text
+Development
+Local testing
+Learning HTTPS
+```
+
+but browsers and operating systems do not automatically trust it.
+
+For production, use a certificate issued by a trusted Certificate Authority (CA), such as Let's Encrypt.
+
+A typical production architecture is:
+
+```text
+Internet
+    |
+    | HTTPS :443
+    ↓
+Reverse Proxy
+(Nginx)
+    |
+    | HTTP/internal HTTPS
+    ↓
+Spring Boot
+    |
+    ↓
+MongoDB Atlas
+```
+
+In that setup, the public HTTPS certificate is usually managed by the reverse proxy.
+
+---
+
+## Summary
+
+The important pieces are:
+
+```text
+keytool
+   ↓
+generates
+   ↓
+lets-play.p12
+   ↓
+contains certificate + private key
+   ↓
+Spring Boot reads it
+   ↓
+server.ssl.*
+   ↓
+Tomcat enables TLS
+   ↓
+https://localhost:8443
+```
+
+The main configuration:
+
+```properties
+server.port=8443
+
+server.ssl.enabled=true
+server.ssl.key-store=classpath:lets-play.p12
+server.ssl.key-store-password=${SSL_KEYSTORE_PASSWORD}
+server.ssl.key-store-type=PKCS12
+server.ssl.key-alias=lets-play
+```
+
+And the important security rule:
+
+```text
+Private key / keystore password
+              ↓
+           SECRET
+              ↓
+      Never commit to Git
 ```
